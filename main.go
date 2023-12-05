@@ -1,42 +1,38 @@
 package main
 
 import (
-	"embed"
-	"io/fs"
+	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
+
+	"github.com/imroc/req/v3"
 )
 
-// embed更多用法见https://taoshu.in/go/how-to-use-go-embed.html.
-// 下面这句很关键，用于将PDFtoPrinter.exe程序编译到toolBinary变量中。
-//
-//go:embed PDFtoPrinter.exe
-var toolBinary embed.FS
+type Result struct {
+	Name string
+	Age  int
+	Url  string
+}
 
 func main() {
-	// 从嵌入的文件系统中提取工具的二进制
-	data, err := fs.ReadFile(toolBinary, "PDFtoPrinter.exe")
-	if err != nil {
-		panic(err)
-	}
-	// 创建临时文件
-	tmpDir, err := os.MkdirTemp("", "tool")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir) // 确保在退出前清理临时目录
+	client := req.C().
+		EnableDumpAllWithoutResponse().
+		SetOutputDirectory("/path/to/download") //下载保存路径
+	login(client)
+	// json等其他请求和逻辑
+	var result Result
+	client.R().SetSuccessResult(&result).Get("http://www.baidu.com:8070/base/admin/user/")
 
-	pdftoprinter := filepath.Join(tmpDir, "pdftoprinter.exe")
-	err = os.WriteFile(pdftoprinter, data, 0700)
-	if err != nil {
-		panic(err)
+	callback := func(info req.DownloadInfo) {
+		if info.Response.Response != nil {
+			fmt.Printf("downloaded %.2f%%\n", float64(info.DownloadedSize)/float64(info.Response.ContentLength)*100.0)
+		}
 	}
-
-	// 执行嵌入的工具
-	cmd := exec.Command(pdftoprinter, `C:\*****.pdf`, "pages=8,4-5") // 替换为您的参数
-	err = cmd.Run()
-	if err != nil {
-		panic(err)
-	}
+	pdfulr := ""
+	// 临时指定绝对下载路径.
+	client.R().SetOutputFile("/tmp/test.pdf").
+		SetDownloadCallback(callback). //下载进度条
+		Get(pdfulr)
+	//打印PDF
+	PrintPDF("", "8")
+	os.Remove("/tmp/test.pdf")
 }
