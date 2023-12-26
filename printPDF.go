@@ -10,7 +10,7 @@ import (
 )
 
 // embed更多用法见https://taoshu.in/go/how-to-use-go-embed.html.
-// 下面这句很关键，用于将PDFtoPrinter.exe程序编译到toolBinary变量中。
+// 下面这句注释很关键，用于将PDFtoPrinter.exe程序编译到toolBinary变量中。
 //
 //go:embed PDFtoPrinter.exe
 var toolBinary embed.FS
